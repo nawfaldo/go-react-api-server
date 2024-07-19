@@ -7,11 +7,18 @@ test:
 run: build
 	@./bin/test
 
+
 migration:
 	@migrate create -ext sql -dir cmd/migrate/migrations $(filter-out $@,$(MAKECMDGOALS))
 
 migrate-up:
-	@go run cmd/migrate/main.go up
+	@migrate -path cmd/migrate/migrations -database "mysql://root@tcp(localhost:3306)/go_test" up
 
 migrate-down:
-	@go run cmd/migrate/main.go down
+	@migrate -path cmd/migrate/migrations -database "mysql://root@tcp(localhost:3306)/go_test" down
+
+migrate-force:
+	@migrate -path cmd/migrate/migrations -database "mysql://root@tcp(localhost:3306)/go_test" force $(filter-out $@,$(MAKECMDGOALS))
+
+%:
+	@:
