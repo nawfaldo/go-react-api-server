@@ -1,0 +1,35 @@
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Vendor directory
+/vendor/
+
+# IDE and Editor directories
+.idea/
+.vscode/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Coverage reports
+*.cover
+*.coverage
+*.cov
+
+# Binary files
+build/
+bin/
+out/
