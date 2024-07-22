@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"test/config"
 	"test/service/user"
 
 	"github.com/gorilla/mux"
@@ -18,7 +19,7 @@ type APIServer struct {
 }
 
 func NewAPIServer(addr string, db *sql.DB) *APIServer {
-	session := sessions.NewCookieStore([]byte("your-secret-key"))
+	session := sessions.NewCookieStore([]byte(config.Envs.SesSecret))
 
 	return &APIServer{
 		addr:    addr,

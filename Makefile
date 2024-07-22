@@ -17,8 +17,5 @@ migrate-up:
 migrate-down:
 	@migrate -path cmd/migrate/migrations -database "mysql://root@tcp(localhost:3306)/go_test" down
 
-migrate-force:
-	@migrate -path cmd/migrate/migrations -database "mysql://root@tcp(localhost:3306)/go_test" force $(filter-out $@,$(MAKECMDGOALS))
-
 %:
 	@:

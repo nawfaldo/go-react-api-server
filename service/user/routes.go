@@ -7,6 +7,7 @@ import (
 	"test/utils"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 )
@@ -26,12 +27,32 @@ func NewHandler(store types.UserStore, session *sessions.CookieStore) *Handler {
 func (h *Handler) UserRoutes(router *mux.Router) {
 	router.HandleFunc("/login", h.handleLogin).Methods("POST")
 	router.HandleFunc("/register", h.handleRegister).Methods("POST")
+	router.HandleFunc("/auth", h.handleAuth).Methods("GET")
+	router.HandleFunc("/logout", h.handleLogout).Methods("POST")
 }
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
-	cookie, _ := h.session.Get(r, "kukis")
+	var payload types.RegisterUserPayload
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+	}
 
-	fmt.Print(cookie.Values)
+	user, err := h.store.GetUserByEmail(payload.Email)
+	if user == nil && err == nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with that email not found"))
+		return
+	}
+
+	cookie, _ := h.session.Get(r, "kukis")
+	cookie.Options = &sessions.Options{
+		MaxAge:   3600 * 24, // 1 day
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	cookie.Values["user"] = user.ID
+	cookie.Save(r, w)
+
+	utils.WriteJSON(w, http.StatusAccepted, nil)
 }
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -46,13 +67,10 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetUserByEmail(payload.Email)
-	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already exists", payload.Email))
-		return
-	}
+	userId := uuid.New().String()
 
-	err = h.store.CreateUser(types.User{
+	err := h.store.CreateUser(types.User{
+		ID:       userId,
 		Name:     payload.Name,
 		Email:    payload.Email,
 		Password: payload.Password,
@@ -64,17 +82,52 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	cookie, _ := h.session.Get(r, "kukis")
 	cookie.Options = &sessions.Options{
-		Path:     "/",
-		MaxAge:   3600,
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
+		MaxAge:   3600 * 24, // 1 day
+		SameSite: http.SameSiteStrictMode,
 	}
 
-	cookie.Values["user"] = payload.Email
+	cookie.Values["user"] = userId
 	cookie.Save(r, w)
 
-	fmt.Println(cookie.Values)
-
 	utils.WriteJSON(w, http.StatusCreated, nil)
+}
+
+func (h *Handler) handleAuth(w http.ResponseWriter, r *http.Request) {
+	cookie, _ := h.session.Get(r, "kukis")
+
+	userId := cookie.Values["user"]
+
+	if userId == nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("not authorized"))
+		return
+	}
+
+	u, _ := h.store.GetAuthById(userId.(string))
+
+	user := map[string]string{
+		"name": u.Name,
+	}
+
+	utils.WriteJSON(w, http.StatusAccepted, user)
+}
+
+func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := h.session.Get(r, "kukis")
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	cookie.Values["user"] = nil
+	cookie.Options = &sessions.Options{
+		MaxAge:   -1,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	if err := cookie.Save(r, w); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, nil)
 }
