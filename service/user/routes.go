@@ -29,30 +29,8 @@ func (h *Handler) UserRoutes(router *mux.Router) {
 	router.HandleFunc("/register", h.handleRegister).Methods("POST")
 	router.HandleFunc("/auth", h.handleAuth).Methods("GET")
 	router.HandleFunc("/logout", h.handleLogout).Methods("POST")
-}
-
-func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
-	var payload types.RegisterUserPayload
-	if err := utils.ParseJSON(r, &payload); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
-	}
-
-	user, err := h.store.GetUserByEmail(payload.Email)
-	if user == nil && err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with that email not found"))
-		return
-	}
-
-	cookie, _ := h.session.Get(r, "kukis")
-	cookie.Options = &sessions.Options{
-		MaxAge:   3600 * 24, // 1 day
-		SameSite: http.SameSiteStrictMode,
-	}
-
-	cookie.Values["user"] = user.ID
-	cookie.Save(r, w)
-
-	utils.WriteJSON(w, http.StatusAccepted, nil)
+	router.HandleFunc("/users", h.handleGetUsers).Methods("GET")
+	router.HandleFunc("/user", h.handleGetUser).Methods("GET")
 }
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +50,6 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	err := h.store.CreateUser(types.User{
 		ID:       userId,
 		Name:     payload.Name,
-		Email:    payload.Email,
 		Password: payload.Password,
 	})
 	if err != nil {
@@ -92,6 +69,35 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusCreated, nil)
 }
 
+func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	var payload types.LoginUserPayload
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+	}
+
+	user, err := h.store.GetUserByName(payload.Name)
+	if user == nil && err == nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("either name or password is wrong"))
+		return
+	}
+
+	if user.Password != payload.Password {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("either name or password is wrong"))
+		return
+	}
+
+	cookie, _ := h.session.Get(r, "kukis")
+	cookie.Options = &sessions.Options{
+		MaxAge:   3600 * 24, // 1 day
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	cookie.Values["user"] = user.ID
+	cookie.Save(r, w)
+
+	utils.WriteJSON(w, http.StatusAccepted, nil)
+}
+
 func (h *Handler) handleAuth(w http.ResponseWriter, r *http.Request) {
 	cookie, _ := h.session.Get(r, "kukis")
 
@@ -102,11 +108,7 @@ func (h *Handler) handleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, _ := h.store.GetAuthById(userId.(string))
-
-	user := map[string]string{
-		"name": u.Name,
-	}
+	user, _ := h.store.GetAuthById(userId.(string))
 
 	utils.WriteJSON(w, http.StatusAccepted, user)
 }
@@ -130,4 +132,18 @@ func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(w, http.StatusOK, nil)
+}
+
+func (h *Handler) handleGetUsers(w http.ResponseWriter, r *http.Request) {
+	users, _ := h.store.GetUsers()
+
+	utils.WriteJSON(w, http.StatusOK, users)
+}
+
+func (h *Handler) handleGetUser(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("ID")
+
+	user, _ := h.store.GetUserById(id)
+
+	utils.WriteJSON(w, http.StatusOK, user)
 }
