@@ -46,7 +46,7 @@ func (s *APIServer) Run() error {
 	s.chatHandler.ChatRoutes(subrouter)
 
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedOrigins:   []string{"http://localhost:3000", "https://go-react-api-web.vercel.app/"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Content-Type"},
 		AllowCredentials: true,
