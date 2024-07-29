@@ -28,6 +28,7 @@ require (
 	github.com/gorilla/sessions v1.3.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/lib/pq v1.10.9
 	github.com/rs/cors v1.11.0
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect

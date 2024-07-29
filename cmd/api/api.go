@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
-	"test/config"
 	"test/service/chat"
 	"test/service/user"
 
@@ -22,7 +21,7 @@ type APIServer struct {
 }
 
 func NewAPIServer(addr string, db *sql.DB) *APIServer {
-	session := sessions.NewCookieStore([]byte(config.Envs.SesSecret))
+	session := sessions.NewCookieStore([]byte("515151"))
 
 	userStore := user.NewStore(db)
 	userHandler := user.NewHandler(userStore, session)

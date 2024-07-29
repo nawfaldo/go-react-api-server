@@ -14,7 +14,7 @@ func NewStore(db *sql.DB) *Store {
 }
 
 func (s *Store) CreateUser(user types.User) error {
-	_, err := s.db.Exec("INSERT INTO users (id, name, password) VALUES (?,?,?)", user.ID, user.Name, user.Password)
+	_, err := s.db.Exec("INSERT INTO users (id, name, password) VALUES ($1, $2, $3)", user.ID, user.Name, user.Password)
 	if err != nil {
 		return err
 	}
@@ -23,7 +23,7 @@ func (s *Store) CreateUser(user types.User) error {
 }
 
 func (s *Store) GetUserByName(name string) (*types.User, error) {
-	row := s.db.QueryRow("SELECT id, password FROM users WHERE name = ?", name)
+	row := s.db.QueryRow("SELECT id, password FROM users WHERE name = $1", name)
 
 	var user types.User
 	err := row.Scan(&user.ID, &user.Password)
@@ -38,7 +38,7 @@ func (s *Store) GetUserByName(name string) (*types.User, error) {
 }
 
 func (s *Store) GetUserById(id string) (*types.GetUser, error) {
-	row := s.db.QueryRow("SELECT id, name FROM users WHERE id = ?", id)
+	row := s.db.QueryRow("SELECT id, name FROM users WHERE id = $1", id)
 
 	var user types.GetUser
 	err := row.Scan(&user.ID, &user.Name)
@@ -53,7 +53,7 @@ func (s *Store) GetUserById(id string) (*types.GetUser, error) {
 }
 
 func (s *Store) GetAuthById(id string) (*types.Auth, error) {
-	row := s.db.QueryRow("SELECT id, name FROM users WHERE id = ?", id)
+	row := s.db.QueryRow("SELECT id, name FROM users WHERE id = $1", id)
 
 	var user types.Auth
 	err := row.Scan(&user.ID, &user.Name)

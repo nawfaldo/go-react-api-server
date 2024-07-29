@@ -16,8 +16,8 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) GetMessages(chat_id string) (any, error) {
-	rows, err := s.db.Query("SELECT user_id, message FROM chat_messages WHERE chat_id = ?", chat_id)
+func (s *Store) GetMessages(chatID string) (any, error) {
+	rows, err := s.db.Query("SELECT user_id, message FROM chat_messages WHERE chat_id = $1", chatID)
 	if err != nil {
 		return nil, err
 	}
@@ -37,11 +37,13 @@ func (s *Store) GetMessages(chat_id string) (any, error) {
 			return nil, err
 		}
 
-		row := s.db.QueryRow("SELECT name FROM users WHERE id = ?", um.UserID)
+		row := s.db.QueryRow("SELECT name FROM users WHERE id = $1", um.UserID)
+
+		if err := row.Scan(&um.UserName); err != nil {
+			return nil, err
+		}
 
 		um.UserID = ""
-
-		row.Scan(&um.UserName)
 
 		messages = append(messages, um)
 	}
@@ -52,8 +54,8 @@ func (s *Store) GetMessages(chat_id string) (any, error) {
 	return messages, nil
 }
 
-func (s *Store) GetChatUsers(user_id string, chat_id string) any {
-	rows, err := s.db.Query("SELECT user_id FROM chat_or_server_users WHERE chat_id = ? AND user_id != ?", chat_id, user_id)
+func (s *Store) GetChatUsers(userID string, chatID string) any {
+	rows, err := s.db.Query("SELECT user_id FROM chat_or_server_users WHERE chat_id = $1 AND user_id != $2", chatID, userID)
 	if err != nil {
 		return nil
 	}
@@ -72,9 +74,11 @@ func (s *Store) GetChatUsers(user_id string, chat_id string) any {
 			return nil
 		}
 
-		row := s.db.QueryRow("SELECT name FROM users WHERE id = ?", u.UserID)
+		row := s.db.QueryRow("SELECT name FROM users WHERE id = $1", u.UserID)
 
-		row.Scan(&u.UserName)
+		if err := row.Scan(&u.UserName); err != nil {
+			return nil
+		}
 
 		u.UserID = ""
 
@@ -88,7 +92,7 @@ func (s *Store) GetChatUsers(user_id string, chat_id string) any {
 }
 
 func (s *Store) CreateMessage(message types.Message) error {
-	_, err := s.db.Exec("INSERT INTO chat_messages (message, user_id, chat_id) VALUES (?,?,?)", message.Message, message.UserID, message.ChatID)
+	_, err := s.db.Exec("INSERT INTO chat_messages (message, user_id, chat_id) VALUES ($1, $2, $3)", message.Message, message.UserID, message.ChatID)
 	if err != nil {
 		return err
 	}
@@ -97,37 +101,38 @@ func (s *Store) CreateMessage(message types.Message) error {
 }
 
 func (s *Store) GetOrCreateChat(user types.GetOrCreateChatPayload) (string, error) {
-	var chatId string
+	var chatID string
 
 	query := `
 		SELECT c.id
 		FROM chats c
 		JOIN chat_or_server_users cu ON c.id = cu.chat_id
-		WHERE cu.user_id IN (?, ?)
+		WHERE cu.user_id IN ($1, $2)
 		GROUP BY c.id
 		HAVING COUNT(DISTINCT cu.user_id) = 2 AND COUNT(cu.user_id) = 2;
 	`
 
 	row := s.db.QueryRow(query, user.UserOne, user.UserTwo)
-	err := row.Scan(&chatId)
+	err := row.Scan(&chatID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			chatId = uuid.New().String()
+			chatID = uuid.New().String()
 
-			_, _ = s.db.Exec("INSERT INTO chats (id, name, server_id, server_role_id, server_chat_category_id) VALUES (?, NULL, NULL, NULL, NULL)", chatId)
+			_, _ = s.db.Exec("INSERT INTO chats (id, name, server_id, server_role_id, server_chat_category_id) VALUES ($1, NULL, NULL, NULL, NULL)", chatID)
 
-			_, _ = s.db.Exec("INSERT INTO chat_or_server_users (user_id, chat_id, server_id, server_role_id) VALUES (?, ?, NULL, NULL)", user.UserOne, chatId)
-			_, _ = s.db.Exec("INSERT INTO chat_or_server_users (user_id, chat_id, server_id, server_role_id) VALUES (?, ?, NULL, NULL)", user.UserTwo, chatId)
+			_, _ = s.db.Exec("INSERT INTO chat_or_server_users (user_id, chat_id, server_id, server_role_id) VALUES ($1, $2, NULL, NULL)", user.UserOne, chatID)
+			_, _ = s.db.Exec("INSERT INTO chat_or_server_users (user_id, chat_id, server_id, server_role_id) VALUES ($1, $2, NULL, NULL)", user.UserTwo, chatID)
 		}
 	}
 
-	return chatId, nil
+	return chatID, nil
 }
 
-func (s *Store) GetChatsByUserID(user_id string) any {
-	rows, err := s.db.Query("SELECT chat_id FROM chat_or_server_users WHERE user_id = ?", user_id)
+func (s *Store) GetChatsByUserID(userID string) any {
+	rows, err := s.db.Query("SELECT chat_id FROM chat_or_server_users WHERE user_id = $1", userID)
 	if err != nil {
 		fmt.Println("err")
+		return nil
 	}
 	defer rows.Close()
 
@@ -147,17 +152,24 @@ func (s *Store) GetChatsByUserID(user_id string) any {
 		var c C
 		if err := rows.Scan(&c.ChatID); err != nil {
 			fmt.Println("err")
+			return nil
 		}
 
 		var otherUser U
 
-		row := s.db.QueryRow("SELECT user_id FROM chat_or_server_users WHERE chat_id = ? AND user_id != ?", c.ChatID, user_id)
+		row := s.db.QueryRow("SELECT user_id FROM chat_or_server_users WHERE chat_id = $1 AND user_id != $2", c.ChatID, userID)
 
-		row.Scan(&otherUser.ID)
+		if err := row.Scan(&otherUser.ID); err != nil {
+			fmt.Println("err")
+			return nil
+		}
 
-		row = s.db.QueryRow("SELECT name FROM users WHERE id = ?", otherUser.ID)
+		row = s.db.QueryRow("SELECT name FROM users WHERE id = $1", otherUser.ID)
 
-		row.Scan(&otherUser.Name)
+		if err := row.Scan(&otherUser.Name); err != nil {
+			fmt.Println("err")
+			return nil
+		}
 
 		c.UserName = otherUser.Name
 
