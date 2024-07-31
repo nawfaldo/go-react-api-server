@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "vercel/handler.go",
-      "use": "@vercel/go"
+      "use": "@vercel/go",
+      "env": {
+        "GO_BUILD_FLAGS": "-ldflags '-s -w'"
+      }
     }
   ],
   "routes": [
