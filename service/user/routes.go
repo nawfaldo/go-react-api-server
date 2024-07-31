@@ -31,11 +31,6 @@ func (h *Handler) UserRoutes(router *mux.Router) {
 	router.HandleFunc("/logout", h.handleLogout).Methods("POST")
 	router.HandleFunc("/users", h.handleGetUsers).Methods("GET")
 	router.HandleFunc("/user", h.handleGetUser).Methods("GET")
-	router.HandleFunc("/hello", h.hello).Methods("GET")
-}
-
-func (h *Handler) hello(w http.ResponseWriter, r *http.Request) {
-	utils.WriteJSON(w, http.StatusCreated, "hello")
 }
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
