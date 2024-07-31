@@ -42,6 +42,8 @@ func (s *APIServer) Run() error {
 	router := mux.NewRouter()
 	subrouter := router.PathPrefix("/api/v1").Subrouter()
 
+	router.HandleFunc("/hello", s.userHandler.Hello).Methods("GET")
+
 	s.userHandler.UserRoutes(subrouter)
 	s.chatHandler.ChatRoutes(subrouter)
 

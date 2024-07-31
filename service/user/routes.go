@@ -33,6 +33,15 @@ func (h *Handler) UserRoutes(router *mux.Router) {
 	router.HandleFunc("/user", h.handleGetUser).Methods("GET")
 }
 
+func (h *Handler) Hello(w http.ResponseWriter, r *http.Request) {
+
+	hello := map[string]string{
+		"msg": "hello",
+	}
+
+	utils.WriteJSON(w, http.StatusAccepted, hello)
+}
+
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	var payload types.RegisterUserPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
