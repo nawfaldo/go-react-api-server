@@ -20,8 +20,8 @@ func main() {
 
 	db.InitStorage(_db)
 
-	server := api.NewAPIServer(":4000", _db)
+	server := api.NewAPIServer(":"+port, _db)
 	if err := server.Run(); err != nil {
-		log.Fatal()
+		log.Fatal(err)
 	}
 }
