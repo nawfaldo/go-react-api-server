@@ -1,14 +1,15 @@
 {
   "version": 2,
-  "builds": {
-    "src": "vercel/handler.go",
-    "use": "@vercel/go",
-    "env": {
-      "GO_BUILD_FLAGS": "-ldflags '-s -w'"
+  "builds": [
+    {
+      "src": "vercel/handler.go",
+      "use": "@vercel/go"
     }
-  },
-  "routes": {
-    "src": "/(.*)",
-    "dest": "vercel/handler.go"
-  }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "vercel/handler.go"
+    }
+  ]
 }
