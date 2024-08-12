@@ -1,14 +1,13 @@
 package config
 
 import (
-	"os"
-
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	DBUser    string
 	DBName    string
+	DBPwd     string
 	SesSecret string
 }
 
@@ -18,8 +17,9 @@ func initConfig() Config {
 	godotenv.Load()
 
 	return Config{
-		DBUser:    os.Getenv("DB_USER"),
-		DBName:    os.Getenv("DB_NAME"),
-		SesSecret: os.Getenv("SESSION_SECRET"),
+		DBUser:    "tasgembo_nawfaldo",
+		DBPwd:     "Ariyanto88$",
+		DBName:    "tasgembo_dc_nawfaldo",
+		SesSecret: "510147",
 	}
 }

@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"log"
 
-	_ "github.com/lib/pq"
+	"github.com/go-sql-driver/mysql"
 )
 
-func NewPostgresStorage(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", dsn)
+func NewMySQLStorage(cfg mysql.Config) (*sql.DB, error) {
+	db, err := sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
 		log.Fatal(err)
 	}

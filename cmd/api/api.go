@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"test/config"
 	"test/service/chat"
 	"test/service/user"
 
@@ -21,7 +22,7 @@ type APIServer struct {
 }
 
 func NewAPIServer(addr string, db *sql.DB) *APIServer {
-	session := sessions.NewCookieStore([]byte("515151"))
+	session := sessions.NewCookieStore([]byte(config.Envs.SesSecret))
 
 	userStore := user.NewStore(db)
 	userHandler := user.NewHandler(userStore, session)
@@ -42,13 +43,11 @@ func (s *APIServer) Run() error {
 	router := mux.NewRouter()
 	subrouter := router.PathPrefix("/api/v1").Subrouter()
 
-	router.HandleFunc("/hello", s.userHandler.Hello).Methods("GET")
-
 	s.userHandler.UserRoutes(subrouter)
 	s.chatHandler.ChatRoutes(subrouter)
 
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "https://go-react-api-web.vercel.app"},
+		AllowedOrigins:   []string{"https://dcweb.nawfaldo.com"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Content-Type"},
 		AllowCredentials: true,
